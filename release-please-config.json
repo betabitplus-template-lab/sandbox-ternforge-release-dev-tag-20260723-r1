@@ -1,0 +1,6 @@
+{
+  "release-type": "simple",
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "packages": {".": {"component": "dev-tag-lab", "release-type": "simple"}}
+}

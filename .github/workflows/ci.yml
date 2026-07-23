@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  required:
+    name: ci / required
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate release state
+        run: |
+          set -euo pipefail
+          jq -e '.["."] | type == "string"' .release-please-manifest.json >/dev/null
+          jq -e '.packages["."]."release-type" == "simple"' release-please-config.json >/dev/null
+          test -s CHANGELOG.md

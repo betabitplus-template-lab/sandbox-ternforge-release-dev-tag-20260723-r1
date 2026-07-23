@@ -1,0 +1,56 @@
+name: Release Please App preparation lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint repository-scoped App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.LAB_APP_ID }}
+          private-key: ${{ secrets.LAB_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Verify exact token repository scope
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          actual="$(gh api --paginate /installation/repositories --jq '.repositories[].full_name' | sort)"
+          test "$actual" = "$GITHUB_REPOSITORY"
+
+      - name: Ensure lifecycle label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh label create release-preparation --color 6f42c1 --description "Release Please preparation PR" --force
+
+      - name: Create or update release preparation PR
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          target-branch: dev
+          skip-github-release: true
+          skip-labeling: true
+
+      - name: Apply fixed lifecycle label
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_PR: ${{ steps.release.outputs.pr }}
+        run: |
+          set -euo pipefail
+          pr_number="$(jq -er .number <<<"$RELEASE_PR")"
+          gh pr edit "$pr_number" --add-label release-preparation
+          printf 'release_pr=%s\n' "$pr_number" >> "$GITHUB_STEP_SUMMARY"

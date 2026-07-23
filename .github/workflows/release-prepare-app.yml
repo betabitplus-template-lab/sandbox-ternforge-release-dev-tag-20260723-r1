@@ -33,7 +33,7 @@ jobs:
       - name: Ensure lifecycle label
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh label create release-preparation --color 6f42c1 --description "Release Please preparation PR" --force
+        run: gh label create release-preparation --repo "$GITHUB_REPOSITORY" --color 6f42c1 --description "Release Please preparation PR" --force
 
       - name: Create or update release preparation PR
         id: release
@@ -52,5 +52,5 @@ jobs:
         run: |
           set -euo pipefail
           pr_number="$(jq -er .number <<<"$RELEASE_PR")"
-          gh pr edit "$pr_number" --add-label release-preparation
+          gh pr edit "$pr_number" --repo "$GITHUB_REPOSITORY" --add-label release-preparation
           printf 'release_pr=%s\n' "$pr_number" >> "$GITHUB_STEP_SUMMARY"
